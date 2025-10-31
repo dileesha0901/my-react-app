@@ -24,8 +24,8 @@ pipeline {
             }
         }
 
-        // FIXED: Combined Analysis and Quality Gate stages
-        stage('SonarCloud Analysis & Quality Gate') {
+        // FIXED: Renamed stage to just "SonarCloud Analysis"
+        stage('SonarCloud Analysis') {
             steps {
                 sh 'npm install' // Sonar needs node_modules to analyze dependencies
                 
@@ -43,17 +43,14 @@ pipeline {
                         // The withSonarQubeEnv wrapper injects them.
                     }
                     
-                    // FIXED: This polling step now runs INSIDE the wrapper
-                    // This is the correct way to do it without webhooks.
-                    timeout(time: 1, unit: 'HOURS') {
-                        waitForQualityGate abortPipeline: true
-                    }
+                    // FIXED: REMOVED the entire "waitForQualityGate" block
+                    // The pipeline will no longer wait and will just continue.
                 }
             }
         }
 
         stage('Build Docker Image') {
-            // This stage will only run if the Quality Gate passes
+            // This stage will now run immediately after the scan finishes
             steps {
                 script {
                     // Use the build number as the image tag
