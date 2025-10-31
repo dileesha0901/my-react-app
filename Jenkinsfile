@@ -3,7 +3,7 @@ pipeline {
 
     tools {
         // Must match the names from "Global Tool Configuration"
-        node 'NodeJS-18'
+        nodejs 'NodeJS-18'
         tool 'SonarScanner'
     }
 
