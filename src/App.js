@@ -22,7 +22,7 @@ function App() {
       {/* Hero Section */}
       <section className="hero">
         <div className="container">
-          <h1>Welcome to Hatton National Bank Test 123</h1>
+          <h1>Welcome to Hatton National Bank</h1>
           <p>Your trusted banking partner since 1888</p>
         </div>
       </section>
