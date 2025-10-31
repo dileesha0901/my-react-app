@@ -2,13 +2,12 @@ pipeline {
     agent any
 
     tools {
-        // Must match the names from "Global Tool Configuration"
+        // Must match the name from "Global Tool Configuration"
         nodejs 'NodeJS-18'
-        tool 'SonarScanner'
     }
 
     environment {
-        // CHANGE THIS to your Docker Hub username
+        // This is your correct Docker Hub username
         DOCKERHUB_USERNAME = 'dileeshakaveeshi'
         IMAGE_NAME = "${DOCKERHUB_USERNAME}/my-react-app"
         // Must match the ID of the credential you created in Jenkins
@@ -21,7 +20,8 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'main', url: '[https://github.com/dileesha0901/my-react-app.git](https://github.com/dileesha0901/my-react-app.git)'
+                // FIXED: Removed the markdown [ ]( ) formatting from the URL
+                git branch: 'main', url: 'https://github.com/dileesha0901/my-react-app.git'
             }
         }
 
@@ -36,7 +36,7 @@ pipeline {
                         ${scannerHome}/bin/sonar-scanner \
                         -Dsonar.projectKey=react-app-pipeline \
                         -Dsonar.sources=. \
-                        -Dsonar.host.url=https-sonarcloud-io \
+                        -Dsonar.host.url=https://sonarcloud.io \
                         -Dsonar.organization=dileesha0901 \
                         -Dsonar.login=${SONAR_TOKEN_CRED_ID}
                     """
@@ -71,7 +71,7 @@ pipeline {
             steps {
                 // Login to Docker Hub using the stored credentials
                 withCredentials([usernamePassword(credentialsId: DOCKERHUB_CREDENTIALS, passwordVariable: 'DOCKER_PASS', usernameVariable: 'DOCKER_USER')]) {
-                    sh "echo ${DOCKER_PASS} | docker login -u ${DOCKER_USER} --password-stdin"
+                    sh "echo ${DOCKER_PASS} | docker login -u ${DOKCER_USER} --password-stdin"
                 }
                 sh "docker push ${IMAGE_NAME}:${env.BUILD_NUMBER}"
                 sh "docker push ${IMAGE_NAME}:latest"
