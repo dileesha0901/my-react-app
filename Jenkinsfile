@@ -29,8 +29,7 @@ pipeline {
             steps {
                 sh 'npm install' // Sonar needs node_modules to analyze dependencies
                 
-                // FIXED: This wrapper now links to the 'SonarCloud' config
-                // from "Configure System". It provides the URL and Token automatically.
+                // This wrapper links to the 'SonarCloud' config and provides the URL/Token.
                 withSonarQubeEnv('SonarCloud') {
                     script {
                         def scannerHome = tool 'SonarScanner'
@@ -43,17 +42,15 @@ pipeline {
                         // We no longer need Dsonar.host.url or Dsonar.login
                         // The withSonarQubeEnv wrapper injects them.
                     }
-                }
-                
-                // FIXED: This step must run *after* the wrapper.
-                // It now knows which analysis to check.
-                timeout(time: 1, unit: 'HOURS') {
-                    waitForQualityGate abortPipeline: true
+                    
+                    // FIXED: This polling step now runs INSIDE the wrapper
+                    // This is the correct way to do it without webhooks.
+                    timeout(time: 1, unit: 'HOURS') {
+                        waitForQualityGate abortPipeline: true
+                    }
                 }
             }
         }
-        
-        // REMOVED the separate 'Check Quality Gate' stage
 
         stage('Build Docker Image') {
             // This stage will only run if the Quality Gate passes
