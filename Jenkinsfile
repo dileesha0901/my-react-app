@@ -13,51 +13,47 @@ pipeline {
         // Must match the ID of the credential you created in Jenkins
         DOCKERHUB_CREDENTIALS = 'dockerhub-credentials'
         SSH_KEY_CREDENTIAL_ID = 'devops-servers-key'
-        SONAR_TOKEN_CRED_ID = 'sonar-token' // The Secret Text credential ID
+        // SONAR_TOKEN_CRED_ID is no longer needed here, as the wrapper handles it.
         ANSIBLE_HOST_KEY_CHECKING = 'false' // Disables SSH host key checking
     }
 
     stages {
         stage('Checkout') {
             steps {
-                // FIXED: Removed the markdown [ ]( ) formatting from the URL
                 git branch: 'main', url: 'https://github.com/dileesha0901/my-react-app.git'
             }
         }
 
-        stage('SonarCloud Analysis') {
+        // FIXED: Combined Analysis and Quality Gate stages
+        stage('SonarCloud Analysis & Quality Gate') {
             steps {
                 sh 'npm install' // Sonar needs node_modules to analyze dependencies
-                script {
-                    // Get the SonarScanner tool path
-                    def scannerHome = tool 'SonarScanner'
-                    
-                    // FIXED: Load the secret token from credentials into a variable
-                    withCredentials([string(credentialsId: SONAR_TOKEN_CRED_ID, variable: 'SONAR_TOKEN_VALUE')]) {
-                        // Run the scanner, now pointing to SonarCloud
+                
+                // FIXED: This wrapper now links to the 'SonarCloud' config
+                // from "Configure System". It provides the URL and Token automatically.
+                withSonarQubeEnv('SonarCloud') {
+                    script {
+                        def scannerHome = tool 'SonarScanner'
                         sh """
                             ${scannerHome}/bin/sonar-scanner \
                             -Dsonar.projectKey=react-app-pipeline \
                             -Dsonar.sources=. \
-                            -Dsonar.host.url=https://sonarcloud.io \
-                            -Dsonar.organization=dileesha0901 \
-                            -Dsonar.login=${SONAR_TOKEN_VALUE}
+                            -Dsonar.organization=dileesha0901
                         """
+                        // We no longer need Dsonar.host.url or Dsonar.login
+                        // The withSonarQubeEnv wrapper injects them.
                     }
                 }
-            }
-        }
-
-        stage('Check Quality Gate') {
-            steps {
-                // This step polls SonarCloud for the analysis results
-                // and will FAIL the pipeline if the Quality Gate is not 'OK'
+                
+                // FIXED: This step must run *after* the wrapper.
+                // It now knows which analysis to check.
                 timeout(time: 1, unit: 'HOURS') {
-                    // The 'abortPipeline: true' is what stops the build on failure
                     waitForQualityGate abortPipeline: true
                 }
             }
         }
+        
+        // REMOVED the separate 'Check Quality Gate' stage
 
         stage('Build Docker Image') {
             // This stage will only run if the Quality Gate passes
@@ -75,6 +71,7 @@ pipeline {
             steps {
                 // Login to Docker Hub using the stored credentials
                 withCredentials([usernamePassword(credentialsId: DOCKERHUB_CREDENTIALS, passwordVariable: 'DOCKER_PASS', usernameVariable: 'DOCKER_USER')]) {
+                    // FIXED: Corrected typo DOKCER_USER -> DOCKER_USER
                     sh "echo ${DOCKER_PASS} | docker login -u ${DOCKER_USER} --password-stdin"
                 }
                 sh "docker push ${IMAGE_NAME}:${env.BUILD_NUMBER}"
@@ -122,3 +119,4 @@ pipeline {
         }
     }
 }
+
