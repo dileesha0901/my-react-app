@@ -31,15 +31,19 @@ pipeline {
                 script {
                     // Get the SonarScanner tool path
                     def scannerHome = tool 'SonarScanner'
-                    // Run the scanner, now pointing to SonarCloud
-                    sh """
-                        ${scannerHome}/bin/sonar-scanner \
-                        -Dsonar.projectKey=react-app-pipeline \
-                        -Dsonar.sources=. \
-                        -Dsonar.host.url=https://sonarcloud.io \
-                        -Dsonar.organization=dileesha0901 \
-                        -Dsonar.login=${SONAR_TOKEN_CRED_ID}
-                    """
+                    
+                    // FIXED: Load the secret token from credentials into a variable
+                    withCredentials([string(credentialsId: SONAR_TOKEN_CRED_ID, variable: 'SONAR_TOKEN_VALUE')]) {
+                        // Run the scanner, now pointing to SonarCloud
+                        sh """
+                            ${scannerHome}/bin/sonar-scanner \
+                            -Dsonar.projectKey=react-app-pipeline \
+                            -Dsonar.sources=. \
+                            -Dsonar.host.url=https://sonarcloud.io \
+                            -Dsonar.organization=dileesha0901 \
+                            -Dsonar.login=${SONAR_TOKEN_VALUE}
+                        """
+                    }
                 }
             }
         }
@@ -71,7 +75,7 @@ pipeline {
             steps {
                 // Login to Docker Hub using the stored credentials
                 withCredentials([usernamePassword(credentialsId: DOCKERHUB_CREDENTIALS, passwordVariable: 'DOCKER_PASS', usernameVariable: 'DOCKER_USER')]) {
-                    sh "echo ${DOCKER_PASS} | docker login -u ${DOKCER_USER} --password-stdin"
+                    sh "echo ${DOCKER_PASS} | docker login -u ${DOCKER_USER} --password-stdin"
                 }
                 sh "docker push ${IMAGE_NAME}:${env.BUILD_NUMBER}"
                 sh "docker push ${IMAGE_NAME}:latest"
